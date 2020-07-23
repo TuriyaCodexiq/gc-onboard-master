@@ -1,0 +1,844 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  gcOnboard:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub
+        - ${ResourceName} From Stack ${StackTagName} Environment ${EnvironmentTagName}
+        - ResourceName: gcOnboard
+      StageName: !Ref EnvironmentAPIGatewayStageName
+      DefinitionBody:
+        swagger: '2.0'
+        info: {}
+        paths:
+          /users:
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Signup.Arn}/invocations
+              responses: {}
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetInfo.Arn}/invocations
+              responses: {}
+          /users/forgot:
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ForgotPassword.Arn}/invocations
+              responses: {}
+          /users/login:
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Login.Arn}/invocations
+              responses: {}
+          /users/forgotconfirm:
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Confirm.Arn}/invocations
+              responses: {}
+          /update:
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Update.Arn}/invocations
+              responses: {}
+          /leads:
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateLead.Arn}/invocations
+              responses: {}
+          /template:
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SetData.Arn}/invocations
+              responses: {}
+          /referenceData:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetRefs.Arn}/invocations
+              responses: {}
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateRefs.Arn}/invocations
+              responses: {}
+          /getleads:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetLeads.Arn}/invocations
+              responses: {}
+          /leads/{leadId}/question/{qId}:
+            put:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AnswerQuestion.Arn}/invocations
+              responses: {}
+          /leads/{leadId}/section/{sectionName}:
+            put:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpdateSection.Arn}/invocations
+              responses: {}
+          /leads/{leadId}:
+            put:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpdateLead.Arn}/invocations
+              responses: {}
+      EndpointConfiguration: REGIONAL
+      TracingEnabled: true
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+  Login:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-Login
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: Login
+      CodeUri: src/Login
+      Handler: index.handler
+      Runtime: nodejs12.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:Admin*
+                - cognito-idp:DescribeIdentityProvider
+                - cognito-idp:DescribeResourceServer
+                - cognito-idp:DescribeUserPool
+                - cognito-idp:DescribeUserPoolClient
+                - cognito-idp:DescribeUserPoolDomain
+                - cognito-idp:GetGroup
+                - cognito-idp:ListGroups
+                - cognito-idp:ListUserPoolClients
+                - cognito-idp:ListUsers
+                - cognito-idp:ListUsersInGroup
+                - cognito-idp:UpdateGroup
+              Resource: !GetAtt UserPool.Arn
+      Events:
+        gcOnboardPOSTuserslogin:
+          Type: Api
+          Properties:
+            Path: /users/login
+            Method: POST
+            RestApiId: !Ref gcOnboard
+      Environment:
+        Variables:
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_ARN: !GetAtt UserPool.Arn
+      Layers:
+        - !Ref TestingLayer
+  ForgotPassword:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-ForgotPassword
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: ForgotPassword
+      CodeUri: src/ForgotPassword
+      Handler: index.handler
+      Runtime: nodejs12.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:Admin*
+                - cognito-idp:DescribeIdentityProvider
+                - cognito-idp:DescribeResourceServer
+                - cognito-idp:DescribeUserPool
+                - cognito-idp:DescribeUserPoolClient
+                - cognito-idp:DescribeUserPoolDomain
+                - cognito-idp:GetGroup
+                - cognito-idp:ListGroups
+                - cognito-idp:ListUserPoolClients
+                - cognito-idp:ListUsers
+                - cognito-idp:ListUsersInGroup
+                - cognito-idp:UpdateGroup
+              Resource: !GetAtt UserPool.Arn
+      Events:
+        gcOnboardPOSTusersforgot:
+          Type: Api
+          Properties:
+            Path: /users/forgot
+            Method: POST
+            RestApiId: !Ref gcOnboard
+      Environment:
+        Variables:
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_ARN: !GetAtt UserPool.Arn
+      Layers:
+        - !Ref TestingLayer
+  Confirm:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-Confirm
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: Confirm
+      CodeUri: src/Confirm
+      Handler: index.handler
+      Runtime: nodejs12.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:Admin*
+                - cognito-idp:DescribeIdentityProvider
+                - cognito-idp:DescribeResourceServer
+                - cognito-idp:DescribeUserPool
+                - cognito-idp:DescribeUserPoolClient
+                - cognito-idp:DescribeUserPoolDomain
+                - cognito-idp:GetGroup
+                - cognito-idp:ListGroups
+                - cognito-idp:ListUserPoolClients
+                - cognito-idp:ListUsers
+                - cognito-idp:ListUsersInGroup
+                - cognito-idp:UpdateGroup
+              Resource: !GetAtt UserPool.Arn
+      Events:
+        gcOnboardPOSTusersforgotconfirm:
+          Type: Api
+          Properties:
+            Path: /users/forgotconfirm
+            Method: POST
+            RestApiId: !Ref gcOnboard
+      Environment:
+        Variables:
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_ARN: !GetAtt UserPool.Arn
+      Layers:
+        - !Ref TestingLayer
+  Signup:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-Signup
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: Signup
+      CodeUri: src/Signup
+      Handler: index.handler
+      Runtime: nodejs12.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:Admin*
+                - cognito-idp:DescribeIdentityProvider
+                - cognito-idp:DescribeResourceServer
+                - cognito-idp:DescribeUserPool
+                - cognito-idp:DescribeUserPoolClient
+                - cognito-idp:DescribeUserPoolDomain
+                - cognito-idp:GetGroup
+                - cognito-idp:ListGroups
+                - cognito-idp:ListUserPoolClients
+                - cognito-idp:ListUsers
+                - cognito-idp:ListUsersInGroup
+                - cognito-idp:UpdateGroup
+              Resource: !GetAtt UserPool.Arn
+      Events:
+        gcOnboardPOSTusers:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: POST
+            RestApiId: !Ref gcOnboard
+      Environment:
+        Variables:
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_ARN: !GetAtt UserPool.Arn
+      Layers:
+        - !Ref TestingLayer
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+      UsernameAttributes:
+        - email
+      UserPoolName: !Sub ${AWS::StackName}-UserPool
+  Update:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-Update
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: Update
+      CodeUri: src/Update
+      Handler: index.handler
+      Runtime: nodejs12.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:Admin*
+                - cognito-idp:DescribeIdentityProvider
+                - cognito-idp:DescribeResourceServer
+                - cognito-idp:DescribeUserPool
+                - cognito-idp:DescribeUserPoolClient
+                - cognito-idp:DescribeUserPoolDomain
+                - cognito-idp:GetGroup
+                - cognito-idp:ListGroups
+                - cognito-idp:ListUserPoolClients
+                - cognito-idp:ListUsers
+                - cognito-idp:ListUsersInGroup
+                - cognito-idp:UpdateGroup
+              Resource: !GetAtt UserPool.Arn
+      Events:
+        gcOnboardPOSTupdate:
+          Type: Api
+          Properties:
+            Path: /update
+            Method: POST
+            RestApiId: !Ref gcOnboard
+      Environment:
+        Variables:
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_ARN: !GetAtt UserPool.Arn
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+      Layers:
+        - !Ref TestingLayer
+  GetInfo:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-GetInfo
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: GetInfo
+      CodeUri: src/GetInfo
+      Handler: index.handler
+      Runtime: nodejs12.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:Admin*
+                - cognito-idp:DescribeIdentityProvider
+                - cognito-idp:DescribeResourceServer
+                - cognito-idp:DescribeUserPool
+                - cognito-idp:DescribeUserPoolClient
+                - cognito-idp:DescribeUserPoolDomain
+                - cognito-idp:GetGroup
+                - cognito-idp:ListGroups
+                - cognito-idp:ListUserPoolClients
+                - cognito-idp:ListUsers
+                - cognito-idp:ListUsersInGroup
+                - cognito-idp:UpdateGroup
+              Resource: !GetAtt UserPool.Arn
+      Events:
+        gcOnboardGETusers:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: GET
+            RestApiId: !Ref gcOnboard
+      Environment:
+        Variables:
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_ARN: !GetAtt UserPool.Arn
+      Layers:
+        - !Ref TestingLayer
+  GetLeads:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-GetLeads
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: GetLeads
+      CodeUri: src/GetLeads
+      Handler: index.handler
+      Runtime: nodejs12.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:Admin*
+                - cognito-idp:DescribeIdentityProvider
+                - cognito-idp:DescribeResourceServer
+                - cognito-idp:DescribeUserPool
+                - cognito-idp:DescribeUserPoolClient
+                - cognito-idp:DescribeUserPoolDomain
+                - cognito-idp:GetGroup
+                - cognito-idp:ListGroups
+                - cognito-idp:ListUserPoolClients
+                - cognito-idp:ListUsers
+                - cognito-idp:ListUsersInGroup
+                - cognito-idp:UpdateGroup
+              Resource: !GetAtt UserPool.Arn
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Leads
+        - S3CrudPolicy:
+            BucketName: !Ref Images
+      Layers:
+        - !Ref TestingLayer
+      Environment:
+        Variables:
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_ARN: !GetAtt UserPool.Arn
+          TABLE_NAME: !Ref Leads
+          TABLE_ARN: !GetAtt Leads.Arn
+          BUCKET_NAME: !Ref Images
+          BUCKET_ARN: !GetAtt Images.Arn
+      Events:
+        gcOnboardGETgetleads:
+          Type: Api
+          Properties:
+            Path: /getleads
+            Method: GET
+            RestApiId: !Ref gcOnboard
+  Leads:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: assignedUser
+          AttributeType: S
+        - AttributeName: id
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: assignedUser
+          KeyType: HASH
+        - AttributeName: id
+          KeyType: RANGE
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+  CreateLead:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-CreateLead
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: CreateLead
+      CodeUri: src/CreateLead
+      Handler: index.handler
+      Runtime: nodejs12.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:Admin*
+                - cognito-idp:DescribeIdentityProvider
+                - cognito-idp:DescribeResourceServer
+                - cognito-idp:DescribeUserPool
+                - cognito-idp:DescribeUserPoolClient
+                - cognito-idp:DescribeUserPoolDomain
+                - cognito-idp:GetGroup
+                - cognito-idp:ListGroups
+                - cognito-idp:ListUserPoolClients
+                - cognito-idp:ListUsers
+                - cognito-idp:ListUsersInGroup
+                - cognito-idp:UpdateGroup
+              Resource: !GetAtt UserPool.Arn
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Leads
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Templates
+        - S3CrudPolicy:
+            BucketName: !Ref Images
+      Layers:
+        - !Ref TestingLayer
+      Events:
+        gcOnboardPOSTleads:
+          Type: Api
+          Properties:
+            Path: /leads
+            Method: POST
+            RestApiId: !Ref gcOnboard
+      Environment:
+        Variables:
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_ARN: !GetAtt UserPool.Arn
+          TABLE_NAME: !Ref Leads
+          TABLE_ARN: !GetAtt Leads.Arn
+          TABLE_NAME_2: !Ref Templates
+          TABLE_ARN_2: !GetAtt Templates.Arn
+          BUCKET_NAME: !Ref Images
+          BUCKET_ARN: !GetAtt Images.Arn
+  Templates:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: category
+          AttributeType: S
+        - AttributeName: index
+          AttributeType: 'N'
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: category
+          KeyType: HASH
+        - AttributeName: index
+          KeyType: RANGE
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+  SetData:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-SetData
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: SetData
+      CodeUri: src/SetData
+      Handler: index.handler
+      Runtime: nodejs12.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Templates
+      Events:
+        gcOnboardPOSTtemplate:
+          Type: Api
+          Properties:
+            Path: /template
+            Method: POST
+            RestApiId: !Ref gcOnboard
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref Templates
+          TABLE_ARN: !GetAtt Templates.Arn
+      Layers:
+        - !Ref TestingLayer
+  ReferenceData:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: category
+          AttributeType: S
+        - AttributeName: description
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: category
+          KeyType: HASH
+        - AttributeName: description
+          KeyType: RANGE
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+  GetRefs:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-GetRefs
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: GetRefs
+      CodeUri: src/GetRefs
+      Handler: index.handler
+      Runtime: nodejs12.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ReferenceData
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:Admin*
+                - cognito-idp:DescribeIdentityProvider
+                - cognito-idp:DescribeResourceServer
+                - cognito-idp:DescribeUserPool
+                - cognito-idp:DescribeUserPoolClient
+                - cognito-idp:DescribeUserPoolDomain
+                - cognito-idp:GetGroup
+                - cognito-idp:ListGroups
+                - cognito-idp:ListUserPoolClients
+                - cognito-idp:ListUsers
+                - cognito-idp:ListUsersInGroup
+                - cognito-idp:UpdateGroup
+              Resource: !GetAtt UserPool.Arn
+      Layers:
+        - !Ref TestingLayer
+      Events:
+        gcOnboardGETreferenceData:
+          Type: Api
+          Properties:
+            Path: /referenceData
+            Method: GET
+            RestApiId: !Ref gcOnboard
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ReferenceData
+          TABLE_ARN: !GetAtt ReferenceData.Arn
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_ARN: !GetAtt UserPool.Arn
+  CreateRefs:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-CreateRefs
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: CreateRefs
+      CodeUri: src/CreateRefs
+      Handler: index.handler
+      Runtime: nodejs12.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ReferenceData
+      Layers:
+        - !Ref TestingLayer
+      Events:
+        gcOnboardPOSTreferenceData:
+          Type: Api
+          Properties:
+            Path: /referenceData
+            Method: POST
+            RestApiId: !Ref gcOnboard
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ReferenceData
+          TABLE_ARN: !GetAtt ReferenceData.Arn
+  AnswerQuestion:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-AnswerQuestion
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: AnswerQuestion
+      CodeUri: src/AnswerQuestion
+      Handler: index.handler
+      Runtime: nodejs12.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:Admin*
+                - cognito-idp:DescribeIdentityProvider
+                - cognito-idp:DescribeResourceServer
+                - cognito-idp:DescribeUserPool
+                - cognito-idp:DescribeUserPoolClient
+                - cognito-idp:DescribeUserPoolDomain
+                - cognito-idp:GetGroup
+                - cognito-idp:ListGroups
+                - cognito-idp:ListUserPoolClients
+                - cognito-idp:ListUsers
+                - cognito-idp:ListUsersInGroup
+                - cognito-idp:UpdateGroup
+              Resource: !GetAtt UserPool.Arn
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Leads
+        - S3CrudPolicy:
+            BucketName: !Ref Images
+      Layers:
+        - !Ref TestingLayer
+      Events:
+        gcOnboardPUTleadsleadIdquestionqId:
+          Type: Api
+          Properties:
+            Path: /leads/{leadId}/question/{qId}
+            Method: PUT
+            RestApiId: !Ref gcOnboard
+      Environment:
+        Variables:
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_ARN: !GetAtt UserPool.Arn
+          TABLE_NAME: !Ref Leads
+          TABLE_ARN: !GetAtt Leads.Arn
+          BUCKET_NAME: !Ref Images
+          BUCKET_ARN: !GetAtt Images.Arn
+  UpdateSection:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-UpdateSection
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: UpdateSection
+      CodeUri: src/UpdateSection
+      Handler: index.handler
+      Runtime: nodejs12.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:Admin*
+                - cognito-idp:DescribeIdentityProvider
+                - cognito-idp:DescribeResourceServer
+                - cognito-idp:DescribeUserPool
+                - cognito-idp:DescribeUserPoolClient
+                - cognito-idp:DescribeUserPoolDomain
+                - cognito-idp:GetGroup
+                - cognito-idp:ListGroups
+                - cognito-idp:ListUserPoolClients
+                - cognito-idp:ListUsers
+                - cognito-idp:ListUsersInGroup
+                - cognito-idp:UpdateGroup
+              Resource: !GetAtt UserPool.Arn
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Leads
+        - S3CrudPolicy:
+            BucketName: !Ref Images
+      Layers:
+        - !Ref TestingLayer
+      Environment:
+        Variables:
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_ARN: !GetAtt UserPool.Arn
+          TABLE_NAME: !Ref Leads
+          TABLE_ARN: !GetAtt Leads.Arn
+          BUCKET_NAME: !Ref Images
+          BUCKET_ARN: !GetAtt Images.Arn
+      Events:
+        gcOnboardPUTleadsleadIdsectionsectionName:
+          Type: Api
+          Properties:
+            Path: /leads/{leadId}/section/{sectionName}
+            Method: PUT
+            RestApiId: !Ref gcOnboard
+  UpdateLead:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-UpdateLead
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: UpdateLead
+      CodeUri: src/UpdateLead
+      Handler: index.handler
+      Runtime: nodejs12.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:Admin*
+                - cognito-idp:DescribeIdentityProvider
+                - cognito-idp:DescribeResourceServer
+                - cognito-idp:DescribeUserPool
+                - cognito-idp:DescribeUserPoolClient
+                - cognito-idp:DescribeUserPoolDomain
+                - cognito-idp:GetGroup
+                - cognito-idp:ListGroups
+                - cognito-idp:ListUserPoolClients
+                - cognito-idp:ListUsers
+                - cognito-idp:ListUsersInGroup
+                - cognito-idp:UpdateGroup
+              Resource: !GetAtt UserPool.Arn
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Leads
+        - S3CrudPolicy:
+            BucketName: !Ref Images
+      Layers:
+        - !Ref TestingLayer
+      Events:
+        gcOnboardPUTleadsleadId:
+          Type: Api
+          Properties:
+            Path: /leads/{leadId}
+            Method: PUT
+            RestApiId: !Ref gcOnboard
+      Environment:
+        Variables:
+          USER_POOL_CLIENT_ID: !Ref UserPoolClient
+          USER_POOL_ID: !Ref UserPool
+          USER_POOL_ARN: !GetAtt UserPool.Arn
+          TABLE_NAME: !Ref Leads
+          TABLE_ARN: !GetAtt Leads.Arn
+          BUCKET_NAME: !Ref Images
+          BUCKET_ARN: !GetAtt Images.Arn
+  Images:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${AWS::StackName}-images-${AWS::AccountId}
+  TestingLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Layer ${ResourceName}
+        - ResourceName: TestingLayer
+      ContentUri: src/Layer
+      RetentionPolicy: Retain
+    Metadata:
+      BuildMethod: nodejs12.x
+Parameters:
+  StackTagName:
+    Type: String
+    Description: Stack Name (injected by Stackery at deployment time)
+  EnvironmentTagName:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+  EnvironmentAPIGatewayStageName:
+    Type: String
+    Description: Environment name used for API Gateway Stage names (injected by Stackery at deployment time)

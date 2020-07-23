@@ -1,0 +1,111 @@
+{
+  "questions": [
+    {
+      "description": "May be self-reported, observations or reported by others in the care circle",
+      "id": "7abb1e4e-32ec-14eb-9b25-9c1da42262c2",
+      "index": 1,
+      "category": "suitability",
+      "name": "Loneliness",
+      "possible_values": [
+        {
+          "description": "Never lonely, does not suffer with loneliness or its side effects, actively prefers to be alone, very private by choice",
+          "value": "1 : Unsuitable"
+        },
+        {
+          "description": "Some loneliness, occasionally lonely but happy to be alone much of the time, private by choice or circumstance, lonely > daily",
+          "value": "2 : Unsuitable"
+        },
+        {
+          "description": "Moderate loneliness, feels lonely < daily",
+          "value": "3 : Suitable"
+        },
+        {
+          "description": "Often lonely multiple times daily, often craves company",
+          "value": "4 : Suitable"
+        },
+        {
+          "description": "Very lonely, has physiological impact on daily living, depression, and other ailments attributable",
+          "value": "5 : Suitable"
+        }
+      ],
+      "required": true,
+      "type": "lookup"
+    },
+    {
+      "id": "a28c26f2-0050-1360-9c2c-8629d8e30c02",
+      "category": "suitability",
+      "index": 2,
+      "name": "Physical mobility",
+      "description": "May be self-reported, observations or reported by others in the care circle",
+      "type": "lookup",
+      "required": true,
+      "possible_values": [
+        {
+          "value": "1 : Unsuitable",
+          "description": "Totally immobile with or without mechanical or human assistance (e.g. bed bound)"
+        },
+        {
+          "value": "2 : Unsuitable",
+          "description": "Some limited mobility with or without mechanical or human assistance"
+        },
+        {
+          "value": "3 : Suitable",
+          "description": "Moderate mobility with or without mechanical human assistance"
+        },
+        {
+          "value": "4 : Suitable",
+          "description": "Good mobility with or without mechanical or human assistance"
+        },
+        {
+          "value": "5 : Suitable",
+          "description": "Full mobility without any assistance"
+        }
+      ]
+    },
+    {
+      "id": "38a9e027-5977-1553-fd30-ff164a8e55f8",
+      "category": "siteSurvey",
+      "index": 1,
+      "question": "Router location",
+      "type": "FreeText",
+      "required": true,
+      "qStatus": ""
+    },
+    {
+      "id": "c1b8f12f-9e7b-119d-64a3-07e1eb73ed5a",
+      "category": "siteSurvey",
+      "index": 2,
+      "question": "Master socket location",
+      "type": "FreeText",
+      "required": false,
+      "qStatus": ""
+    },
+    {
+      "id": "33c1d8a7-2b40-1cbd-86a2-1d1d16fef2b7",
+      "category": "siteSurvey",
+      "index": 3,
+      "question": "Primary ISP",
+      "type": "FreeText",
+      "required": true,
+      "qStatus": ""
+    },
+    {
+      "id": "0e3fa4b5-d0d2-17ad-f8ff-fda78627a301",
+      "category": "siteSurvey",
+      "index": 4,
+      "question": "WiFi cap",
+      "type": "integer",
+      "required": false,
+      "qStatus": ""
+    },
+    {
+      "id": "a0d95641-d9d4-1c5d-0f42-80ff1ba79974",
+      "category": "siteSurvey",
+      "index": 5,
+      "question": "Is router relocatable?",
+      "type": "Lookup",
+      "required": false,
+      "qStatus": ""
+    }
+  ]
+}
